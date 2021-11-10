@@ -78,32 +78,30 @@ class LeakageOracle:
                 secret values
         """
         shares = np.random.randint(0, 2 ** self.b, (n, self.d), dtype=np.uint8)
-        data = np.zeros((n, self.ndim), dtype=np.uint8)
+        leakage = np.zeros((n, self.ndim))
         
-        data[:, : self.d] = shares
+        leakage[:, : self.d] = get_HW(shares)
         secret = np.bitwise_xor.reduce(shares, axis=1)
         if self.f != 0.0:
-            data[:, self.d] = secret
+            leakage[:, self.d] = self.f*get_HW(secret)
 
-        leakage = np.random.normal(get_HW(data), scale=self.sigma)
+        leakage = np.random.normal(leakage, scale=self.sigma)
         return leakage, shares, secret
 
     def pmf(self,leakage):
 
         n,_ = leakage.shape
         
-        if self.f == 0.0:
-            prs_shares = np.zeros((n,self.d,2**self.b))
-            for d in range(self.d):
-                for x in range(2** self.b):
-                    #prs[:,d,:] = scipy.stats.norm.pdf(leakage[:,d],loc=get_HW(x),scale=self.sigma) 
-                    prs_shares[:,d,x] = np.exp(-0.5*((leakage[:,d]-get_HW(x))/self.sigma)**2)
+        prs_shares = np.zeros((n,self.d,2**self.b))
+        for d in range(self.d):
+            for x in range(2** self.b):
+                prs_shares[:,d,x] = np.exp(-0.5*((leakage[:,d]-get_HW(x))/self.sigma)**2)
 
-                prs_shares[:,d,:] = (prs_shares[:,d,:].T/np.sum(prs_shares[:,d,:],axis=1)).T
-                prs = recombine_fwht(prs_shares.T).T
-        else:
-            print("Not implemented yet pmf for f!=0.0")
-            exit(-1)
+        prs = recombine_fwht(prs_shares.T).T
+        
+        if self.f != 0.0:
+            for x in range(2**self.b):
+                prs[:,x] *= np.exp(-0.5*((leakage[:,self.d]-(self.f*get_HW(x)))/self.sigma)**2)
 
         
         return (prs.T / np.sum(prs,axis=1)).T
