@@ -1,5 +1,5 @@
 import numpy as np
-import scipy
+#import scipy
 
 # define hamming weight (HW) table.
 HW = 0
@@ -11,6 +11,34 @@ while np.max(r) > 0:
 
 def get_HW(matrix):
     return HW[matrix]
+
+
+def fwht(a):
+    h = 1
+    x = np.zeros(a[0].shape).astype(np.float64)
+    y = np.zeros(a[0].shape).astype(np.float64)
+    while h < len(a):
+        for i in range(0,len(a),h*2):
+            for j in range(i,i+h):
+                x[:] = a[j]
+                y[:] = a[j+h]
+                a[j] = x+y
+                a[j+h] = x-y
+        h *= 2
+
+def recombine_fwht(pr):
+    """
+        pr is of size (Nk x D x  Nt):
+            Nk size of the field
+            D number of shares 
+            Nt  number of traces
+    """
+    pr = pr.astype(np.float64)
+    pr_fft = pr.copy()
+    fwht(pr_fft)
+    pr = np.prod(pr_fft,axis=1)
+    fwht(pr)
+    return pr
 
 
 class LeakageOracle:
@@ -65,13 +93,20 @@ class LeakageOracle:
         n,_ = leakage.shape
         
         if self.f == 0.0:
-            prs = np.zeros((n,d,prs))
+            prs_shares = np.zeros((n,self.d,2**self.b))
             for d in range(self.d):
                 for x in range(2** self.b):
-                    prs[:,d,:] = scipy.stats.norm.pdf(leakage[:,d],loc=get_HW(x),scale=self.sigma) 
+                    #prs[:,d,:] = scipy.stats.norm.pdf(leakage[:,d],loc=get_HW(x),scale=self.sigma) 
+                    prs_shares[:,d,x] = np.exp(-0.5*((leakage[:,d]-get_HW(x))/self.sigma)**2)
+
+                prs_shares[:,d,:] = (prs_shares[:,d,:].T/np.sum(prs_shares[:,d,:],axis=1)).T
+                prs = recombine_fwht(prs_shares.T).T
         else:
             print("Not implemented yet pmf for f!=0.0")
             exit(-1)
+
+        
+        return (prs.T / np.sum(prs,axis=1)).T
 
 if __name__ == "__main__":
     n = 100
