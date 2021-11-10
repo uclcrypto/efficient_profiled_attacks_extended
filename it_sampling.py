@@ -1,7 +1,26 @@
 import numpy as np
 
-def it_sampling(pmf,oracle,rp=1E-1):
-    s = 0; s2 = 0; step = int(1E5); n = 0;
+def it_sampling(pmf,oracle,rp=1E-1,floor=0.0):
+    """ compute information extracted by a pmf from 
+    a leakage oracle
+
+    inputs:
+        pmf (function)
+            outputs probabilities when given leakage.
+        oracle (objection)
+            a LeakageOracle representing the implementation.
+        rp (float)
+            relative precision of estimation of it metric.
+        floor (floor)
+            stop estimating if it is smaller than floor.
+
+    output:
+        it (float)
+            it metric to be estimated.
+        esti_std (float)
+            standard deviation of it estimator.
+    """
+    s = 0; s2 = 0; step = int(1E4); n = 0;
 
     while n<1E9:
         leakage,shares,secret = oracle.get(step)
@@ -17,7 +36,12 @@ def it_sampling(pmf,oracle,rp=1E-1):
         esti_std = std_logs / np.sqrt(n) 
         it = oracle.b + s/n
 
+        # break if relative precision is met
         if esti_std < rp * (it) and it > 0:
+            break
+
+        # break if it too small compared to floor 
+        if it + esti_std*3 < floor:
             break
 
     return it,esti_std
