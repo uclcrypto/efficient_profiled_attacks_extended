@@ -7,9 +7,11 @@ def gt_sasca(leakage,shares,d,b):
     for i in range(d):
         for x in range(2**b):
             indexes = np.where(shares[:,i]==x)[0]
-            mean_shares[i,x] = np.mean(leakage[indexes,i])
+            if len(indexes) == 0:
+                mean_shares[i,x] = 0
+            else:
+                mean_shares[i,x] = np.mean(leakage[indexes,i])
         std_shares[i] = np.std(leakage[:,i] - mean_shares[i,shares[:,i]])
-
     def pmf(leakage):
         n,ndim = leakage.shape
         prs_shares = np.zeros((n,d,2**b))
@@ -17,9 +19,10 @@ def gt_sasca(leakage,shares,d,b):
             for x in range(2** b):
                 prs_shares[:,i,x] = np.exp(-0.5*((leakage[:,i]-mean_shares[i,x])/std_shares[i])**2)
 
+        prs_shares[np.where(prs_shares<1E-100)] = 1E-100
+
         prs = recombine_fwht(prs_shares.T).T
         prs = (prs.T / np.sum(prs,axis=1)).T
-        prs[np.where(prs<1E-100)] = 1E-100
         return prs 
 
     return pmf
@@ -37,9 +40,9 @@ if __name__ == "__main__":
     sigma = 1
 
     loracle = LeakageOracle(d=d,b=b,f=f,sigma=sigma)
-    mi,mi_std = it_sampling(loracle.pmf,loracle,rp=0.005)
+    mi,mi_std = it_sampling(loracle.pmf,loracle,rp=0.05)
 
-    n_profile = np.logspace(2,6,20,dtype=int)
+    n_profile = np.logspace(1,6,20,dtype=int)
     pi_sasca = np.zeros(len(n_profile))
     pi_std = np.zeros(len(n_profile))
     
@@ -48,7 +51,7 @@ if __name__ == "__main__":
         print(i)
         pmf_sasca = gt_sasca(leakage[:n],shares[:n],d=d,b=b)
         pi_sasca[i],pi_std[i] = it_sampling(pmf_sasca,loracle,rp=0.005,floor=mi/10)
-
+        print(pi_sasca)
     plt.figure()
     plt.loglog(n_profile,pi_sasca)
     plt.fill_between(n_profile,pi_sasca+pi_std,pi_sasca-pi_std)

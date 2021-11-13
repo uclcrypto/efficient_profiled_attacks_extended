@@ -5,6 +5,8 @@ from leakage_oracle import LeakageOracle
 from it_sampling import it_sampling
 import glob
 import matplotlib.pyplot as plt
+import tikzplotlib
+
 d = 2
 b = 4
 f = 0.00
@@ -18,7 +20,7 @@ os.makedirs(dir_name,exist_ok=True)
 methods = [{"label":"gt-esasca",
                 "func":gt_sasca,
                 "n_profile":np.logspace(2,6,20,dtype=int),
-                "repeat":5}
+                "repeat":10}
         ]
 
 def it_computation():
@@ -83,12 +85,12 @@ def plot_summary(labels):
             break
         plt.loglog(curve["n_profile"],curve["pi"],label=curve["label"])
 
-    plt.xlabel("profiling data")
-    plt.ylabel("Information Metrics")
-    plt.grid(True,which="both",ls="--")
+#    plt.xlabel("profiling data")
+#    plt.ylabel("Information Metrics")
+#    plt.grid(True,which="both",ls="--")
     plt.legend()
     plt.savefig(os.path.join(dir_name,"summary.pdf"))
-
+    tikzplotlib.save(os.path.join(dir_name,"summary.tex"))
     plt.show()
 if __name__ == "__main__":
     print("Computing MI for the implementation")

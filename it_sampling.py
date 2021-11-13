@@ -26,6 +26,8 @@ def it_sampling(pmf,oracle,rp=1E-1,floor=0.0):
         leakage,shares,secret = oracle.get(step)
 
         prs_k_l = pmf(leakage)
+        prs_k_l[np.where(~np.isfinite(prs_k_l))]=1E-100
+        prs_k_l[np.where(prs_k_l<1E-100)]=1E-100
         logs = np.log2(prs_k_l[np.arange(step),secret])
 
         s += np.sum(logs)
