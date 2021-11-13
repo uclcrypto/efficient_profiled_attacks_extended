@@ -18,8 +18,9 @@ def gt_sasca(leakage,shares,d,b):
                 prs_shares[:,i,x] = np.exp(-0.5*((leakage[:,i]-mean_shares[i,x])/std_shares[i])**2)
 
         prs = recombine_fwht(prs_shares.T).T
-
-        return (prs.T / np.sum(prs,axis=1)).T
+        prs = (prs.T / np.sum(prs,axis=1)).T
+        prs[np.where(prs<1E-100)] = 1E-100
+        return prs 
 
     return pmf
 
