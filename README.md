@@ -27,3 +27,12 @@ optional arguments:
   --repeat REPEAT, -r REPEAT
                         Number of repeated experiments
 ```
+
+As an example, running
+```
+python3 main.py -d 3 --std 0.5 -f 0.0 -r 10 -b 4
+```
+will generate the converge curves for 3 4-bit shares with noise standard deviation of 0.05. The plot will be saved in the corresponding directory. 
+
+## Contact
+In order to report issues, please contact Olivier Bronchain (olivier.bronchain at uclouvain.be) or open an issue on github. 
