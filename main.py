@@ -5,7 +5,7 @@ from leakage_oracle import LeakageOracle
 from it_sampling import it_sampling
 import glob
 import matplotlib.pyplot as plt
-
+import tikzplotlib
 ## arguments
 import argparse
 
@@ -128,12 +128,15 @@ def plot_summary(labels):
         plt.loglog(curve["n_profile"], curve["pi"], label=curve["label"])
 
     plt.legend()
+    plt.ylim([mi/50,mi*1.1])
+    plt.grid(True,which="both",ls="--")
     plt.savefig(os.path.join(dir_name, "summary.pdf"))
+    tikzplotlib.save(os.path.join(dir_name, "summary.tex"))
     plt.show()
 
 
 if __name__ == "__main__":
 
-    it_computation(methods)
+    #it_computation(methods)
     summarize(["gt-esasca", "mlp"])
     plot_summary(["gt-esasca", "mlp"])

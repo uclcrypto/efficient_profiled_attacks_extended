@@ -4,6 +4,8 @@ from sklearn.ensemble import RandomForestClassifier
 import torch
 
 # This file contains various distinguishers
+# All the function takes as input the leakage and the shares
+# They return the pmf function.
 
 
 def gt_sasca(leakage, shares, d, b):
