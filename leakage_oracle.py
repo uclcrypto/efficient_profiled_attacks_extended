@@ -70,19 +70,3 @@ class LeakageOracle:
                 )
 
         return (prs.T / np.sum(prs, axis=1)).T
-
-
-if __name__ == "__main__":
-    n = 100
-    d = 2
-    loracle = LeakageOracle(sigma=1, d=d, b=4)
-    leakage, shares, secret = loracle.get(n)
-
-    assert leakage.shape == (n, d)
-    assert shares.shape == (n, d)
-
-    loracle = LeakageOracle(sigma=1, d=d, b=4, f=0.1)
-    leakage, shares, secret = loracle.get(n)
-
-    assert leakage.shape == (n, d + 1)
-    assert shares.shape == (n, d)

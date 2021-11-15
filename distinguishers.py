@@ -3,6 +3,8 @@ from utils import recombine_fwht, Net, FastTensorDataLoader
 from sklearn.ensemble import RandomForestClassifier
 import torch
 
+# This file contains various distinguishers
+
 
 def gt_sasca(leakage, shares, d, b):
     mean_shares = np.zeros((d, 2 ** b))
@@ -112,6 +114,8 @@ def mlp(leakage, shares, d, b):
         losses_val.append(np.mean(loss_avg))
 
         losses_train_np = np.array(losses_val)
+
+        # use validation to avoid overfitting
         if epoch > patience and epoch > 20:
             if (
                 np.all(losses_train_np[-patience] <= losses_train_np[-patience:])
@@ -127,39 +131,3 @@ def mlp(leakage, shares, d, b):
         return prs_k_l
 
     return get_prs_k_l
-
-
-if __name__ == "__main__":
-
-    from leakage_oracle import LeakageOracle
-    from it_sampling import it_sampling
-    import matplotlib.pyplot as plt
-
-    # parameter of the implementation
-    d = 2
-    b = 4
-    f = 0.1
-    sigma = 1
-
-    loracle = LeakageOracle(d=d, b=b, f=f, sigma=sigma)
-    mi, mi_std = it_sampling(loracle.pmf, loracle, rp=0.05)
-
-    n_profile = np.logspace(1, 6, 20, dtype=int)
-    pi_sasca = np.zeros(len(n_profile))
-    pi_std = np.zeros(len(n_profile))
-
-    leakage, shares, secret = loracle.get(np.max(n_profile))
-    for i, n in enumerate(n_profile):
-        print(i)
-        pmf_sasca = gt_sasca(leakage[:n], shares[:n], d=d, b=b)
-        pi_sasca[i], pi_std[i] = it_sampling(
-            pmf_sasca, loracle, rp=0.005, floor=mi / 10
-        )
-        print(pi_sasca)
-    plt.figure()
-    plt.loglog(n_profile, pi_sasca)
-    plt.fill_between(n_profile, pi_sasca + pi_std, pi_sasca - pi_std)
-    plt.axhline(mi, color="r")
-    plt.fill_between(n_profile, mi + mi_std, mi - mi_std, color="r")
-    plt.grid(True, which="both", ls="--")
-    plt.show()
