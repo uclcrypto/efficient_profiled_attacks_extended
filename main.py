@@ -1,5 +1,5 @@
 import numpy as np
-from distinguishers import gt_sasca, rf, mlp
+from distinguishers import gt_sasca, rf, mlp, mlp_sasca, em
 import os
 from leakage_oracle import LeakageOracle
 from it_sampling import it_sampling
@@ -29,11 +29,17 @@ sigma = args.std
 repeat = args.repeat
 
 rp = 0.01
-n_profile = np.logspace(2.5, 6, 15, dtype=int)
+n_profile = np.logspace(2.5, 5, 15, dtype=int)
 dir_name = "d%d_b%d_f%.3f_sigma%.3f" % (d, b, f, sigma)
 os.makedirs(dir_name, exist_ok=True)
 
 methods = [
+    {
+        "label": "em",
+        "func": em,
+        "n_profile": n_profile,
+        "repeat": repeat,
+    },
     {
         "label": "gt-esasca",
         "func": gt_sasca,
@@ -41,11 +47,17 @@ methods = [
         "repeat": repeat,
     },
     {
-        "label": "rf",
-        "func": rf,
+        "label": "mlp-esasca",
+        "func": mlp_sasca,
         "n_profile": n_profile,
         "repeat": repeat,
     },
+#    {
+#        "label": "rf",
+#        "func": rf,
+#        "n_profile": n_profile,
+#        "repeat": repeat,
+#    },
     {
         "label": "mlp",
         "func": mlp,
@@ -77,7 +89,7 @@ def it_computation(methods):
             leakage, shares, secret = loracle.get(np.max(n_profile))
             for i, n in enumerate(n_profile):
                 pmf = method["func"](leakage[:n], shares[:n], d=d, b=b)
-                pi[i], pi_std[i] = it_sampling(pmf, loracle, rp=rp, floor=mi / 50)
+                pi[i], pi_std[i] = it_sampling(pmf, loracle, rp=rp, floor=mi / 20)
                 print(
                     "--- "
                     + f"{method['label']}: pi = {pi[i]:.4f} : n = {n:9d} : mi = {mi:.4f}"
@@ -137,6 +149,6 @@ def plot_summary(labels):
 
 if __name__ == "__main__":
 
-    #it_computation(methods)
-    summarize(["gt-esasca", "mlp"])
-    plot_summary(["gt-esasca", "mlp"])
+    it_computation(methods)
+    summarize(["gt-esasca", "mlp","mlp-esasca","em"])
+    plot_summary(["gt-esasca", "mlp","mlp-esasca","em"])

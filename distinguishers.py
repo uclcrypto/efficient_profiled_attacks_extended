@@ -1,6 +1,7 @@
 import numpy as np
 from utils import recombine_fwht, Net, FastTensorDataLoader
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.mixture import GaussianMixture
 import torch
 
 # This file contains various distinguishers
@@ -34,7 +35,6 @@ def gt_sasca(leakage, shares, d, b):
         prs = recombine_fwht(prs_shares.T).T
         prs = (prs.T / np.sum(prs, axis=1)).T
         return prs
-
     return pmf
 
 
@@ -133,3 +133,48 @@ def mlp(leakage, shares, d, b):
         return prs_k_l
 
     return get_prs_k_l
+
+def mlp_sasca(leakage, shares, d, b):
+    pmfs = [] 
+    for i in range(d):
+        pmfs.append(mlp(leakage[:,[i]],shares[:,[i]],1,b))
+
+    def pmf(leakage):
+        n, ndim = leakage.shape
+        prs_shares = np.zeros((n, d, 2 ** b))
+        for i in range(d):
+            prs_shares[:,i,:] = pmfs[i](leakage[:,[i]])
+
+        prs_shares[np.where(prs_shares < 1e-100)] = 1e-100
+
+        prs = recombine_fwht(prs_shares.T).T
+        prs = (prs.T / np.sum(prs, axis=1)).T
+        return prs
+    return pmf
+
+def em(leakage,shares_train,d,b):
+    leakage_train = leakage[:,:d]
+    secret_train = np.bitwise_xor.reduce(shares_train,axis=1)
+    ems = []
+    # KDE training
+    for i in range(2**b):
+        indexes = np.where(secret_train == i)[0]
+
+        grid = GaussianMixture(max_iter=200,
+                    n_components=min((b+1)**d,len(indexes)),
+                    covariance_type="tied")
+        ems.append(grid.fit(leakage_train[indexes,:],secret_train[indexes]))
+
+    def get_prs_k_l(leakage):
+        leakage_test = leakage[:,:d]
+        prs_l_k = np.zeros((len(leakage_test),2**b))
+        for i in range(2**b):
+            prs_l_k[:,i] = np.exp(ems[i].score_samples(leakage_test))
+        
+        prs_l_k[np.where(prs_l_k<1E-100)] = 1E-100
+        prs_k_l = (prs_l_k.T / np.sum(prs_l_k,axis=1)).T
+        return prs_k_l 
+
+    return get_prs_k_l
+
+
